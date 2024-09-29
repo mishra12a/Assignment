@@ -1,0 +1,52 @@
+const db = require('../configuration/db');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+
+// Signup
+exports.signup = (req, res) => {
+    // Extract the username and password from the request body
+    const { username, password } = req.body;
+    const passkey = toString(password);
+
+    // Insert the new user into the database
+    // const sql = `INSERT INTO users (username, passkey) VALUES (${username}, ${passkey})`;
+    const sql = `INSERT INTO users (username, passkey) VALUES ("mishra", "1234")`;
+    db.query(sql, [username, passkey], (err, result) => {
+        // If there's an error, send a 500 response
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Error signing up');
+        }
+        // Otherwise, send a success message
+        res.send('User registered');
+    });
+};
+
+// Login
+exports.login = (req, res) => {
+    // Extract the username and password from the request body
+    const { username, passkey } = req.body;
+
+    // Find the user in the database
+    const sql = 'SELECT * FROM users WHERE username = ?';
+    db.query(sql, [username], (err, result) => {
+        // If there's an error or the user doesn't exist, send a 400 response
+        if (err || result.length === 0) {
+            return res.status(400).send('User not found');
+        }
+
+        // Extract the user from the result
+        const user = result[0];
+
+        // Compare the provided password with the stored password
+        if (passkey !== user.passkey) {
+            return res.status(401).send('Invalid password');
+        }
+
+        // Generate a JWT token with the user's ID
+        const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+        // Send the token as the response
+        res.json({ token });
+    });
+};
